@@ -3,9 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <title>Survivor Season Simulator</title>
+
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Data Files -->
+  <script src="defaultPlayers.js"></script>
+  <script src="challenges.js"></script>
+  <script src="tiebreakers.js"></script>
 </head>
-<body>
+
+<body class="theme-emerald">
   <div id="app">
     <header>
       <h1>Survivor Season Simulator</h1>
@@ -13,12 +21,15 @@
     </header>
 
     <main>
-      <!-- MAIN MENU / SETUP -->
+
+      <!-- SETUP SECTION -->
       <section id="setup-section">
         <h2>Main Menu</h2>
 
+        <!-- CAST SETUP -->
         <div class="panel">
-          <h3>Cast setup</h3>
+          <h3>Cast Setup</h3>
+
           <label>
             <span>Cast size:</span>
             <input type="number" id="cast-size" min="8" max="24" value="16" />
@@ -28,49 +39,33 @@
 
           <button id="randomize-cast">Randomize Names</button>
 
-          <h4>Custom cast (JSON)</h4>
+          <h4>Pick From Default Characters</h4>
+          <input type="text" id="default-search" placeholder="Search characters…" />
+          <div id="default-results"></div>
+
+          <h4>Custom Cast (JSON)</h4>
           <textarea id="custom-cast-input" placeholder='[{"name":"Player 1"},{"name":"Player 2"}]'></textarea>
           <button id="load-custom-cast">Load Custom Cast</button>
         </div>
 
+        <!-- ADVANTAGES & RULES -->
         <div class="panel">
-          <h3>Advantages & rules</h3>
+          <h3>Advantages & Rules</h3>
 
-          <label>
-            <input type="checkbox" id="toggle-idols" checked />
-            Hidden immunity idols enabled
-          </label>
-
-          <label>
-            <input type="checkbox" id="toggle-vote-steal" />
-            Vote steal enabled
-          </label>
+          <label><input type="checkbox" id="toggle-idols" checked /> Hidden immunity idols enabled</label>
+          <label><input type="checkbox" id="toggle-vote-steal" /> Vote steal enabled</label>
 
           <h4>Tiebreakers</h4>
-          <label>
-            <input type="radio" name="tiebreaker" value="revote" checked />
-            Revote, then rock draw if still tied
-          </label>
-          <label>
-            <input type="radio" name="tiebreaker" value="revote-challenge" />
-            Revote, then tiebreaker challenge if still tied
-          </label>
+          <label><input type="radio" name="tiebreaker" value="revote" checked /> Revote → rocks</label>
+          <label><input type="radio" name="tiebreaker" value="revote-challenge" /> Revote → challenge</label>
 
           <h3>Twists</h3>
-          <label>
-            <input type="checkbox" id="toggle-sudden-death" />
-            Sudden death challenge episode
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-split-tribe" />
-            Split episode (half plays this episode, half next)
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-rejoin" />
-            Rejoin challenge mid‑season
-          </label>
+          <label><input type="checkbox" id="toggle-sudden-death" /> Sudden death challenge</label>
+          <label><input type="checkbox" id="toggle-split-tribe" /> Split episode rotation</label>
+          <label><input type="checkbox" id="toggle-rejoin" /> Rejoin challenge</label>
         </div>
 
+        <!-- THEME -->
         <div class="panel">
           <h3>Theme</h3>
           <select id="theme-select">
@@ -83,41 +78,48 @@
         <button id="start-season" class="primary">Start Season</button>
       </section>
 
-      <!-- EPISODE VIEW -->
+      <!-- EPISODE SECTION -->
       <section id="episode-section" class="hidden">
         <h2 id="episode-title">Episode 1</h2>
 
         <div class="episode-layout">
+
+          <!-- EPISODE LOG -->
           <div class="panel">
-            <h3>Episode summary</h3>
+            <h3>Episode Summary</h3>
             <div id="episode-log"></div>
             <button id="next-episode" class="primary">Next Episode</button>
           </div>
 
+          <!-- CAST STATUS -->
           <div class="panel">
-            <h3>Cast & status</h3>
+            <h3>Cast Status</h3>
             <div id="cast-status"></div>
           </div>
 
+          <!-- TRACK RECORD -->
           <div class="panel">
-            <h3>Track record</h3>
+            <h3>Track Record</h3>
             <div id="track-record-container">
               <table id="track-record-table"></table>
             </div>
             <button id="download-track-record">Download Track Record (PNG)</button>
           </div>
+
         </div>
       </section>
 
-      <!-- FINALE VIEW -->
+      <!-- FINALE SECTION -->
       <section id="finale-section" class="hidden">
         <h2>Season Results</h2>
         <div id="finale-summary"></div>
         <button id="restart">Back to Main Menu</button>
       </section>
+
     </main>
   </div>
 
+  <!-- Main Script -->
   <script src="script.js"></script>
 </body>
 </html>
