@@ -1,9 +1,10 @@
 // ============================================================
 // challenges.js
-// Reward, immunity, and optional team challenges for the simulator
+// Reward, immunity, and team challenges for the simulator
 // ============================================================
 
 window.CHALLENGES = {
+
   // ------------------------------------------------------------
   // REWARD CHALLENGES
   // ------------------------------------------------------------
@@ -31,6 +32,22 @@ window.CHALLENGES = {
     {
       name: "SOS Signal",
       description: "Players must build the most visible distress signal using limited supplies."
+    },
+    {
+      name: "Treasure Dig",
+      description: "Castaways dig through sand pits to find buried crates containing luxury items."
+    },
+    {
+      name: "Coconut Bowling",
+      description: "Players roll coconuts down a sandy lane to knock over wooden pins."
+    },
+    {
+      name: "Island Trivia",
+      description: "A quiz about the island, survival skills, and past events. Highest score wins a feast."
+    },
+    {
+      name: "Raft Retrieval",
+      description: "Players swim out to retrieve floating crates and bring them back to shore."
     }
   ],
 
@@ -61,12 +78,28 @@ window.CHALLENGES = {
     {
       name: "Obstacle Tower",
       description: "Players climb, crawl, and leap through a vertical obstacle course before solving a final puzzle."
+    },
+    {
+      name: "Memory Tiles",
+      description: "Players flip tiles to match symbols. The first to complete their board wins immunity."
+    },
+    {
+      name: "Sandbag Stack",
+      description: "Players stack sandbags on a narrow platform. If it falls, they must start over."
+    },
+    {
+      name: "Water Balance",
+      description: "Players stand on floating platforms that wobble with every movement. Last standing wins."
+    },
+    {
+      name: "Idol Run",
+      description: "Players race through checkpoints collecting pieces of a puzzle idol they must assemble at the end."
     }
   ],
 
   // ------------------------------------------------------------
-  // TEAM CHALLENGES (OPTIONAL)
-  // If you add tribes later, these will already be ready.
+  // TEAM CHALLENGES
+  // (Useful if you add tribes later)
   // ------------------------------------------------------------
   team: [
     {
@@ -80,7 +113,26 @@ window.CHALLENGES = {
     {
       name: "Fire Relay",
       description: "Teams transport a flame through obstacles without letting it go out."
+    },
+    {
+      name: "Crate Push",
+      description: "Teams push heavy crates across the beach and stack them to reach a high flag."
+    },
+    {
+      name: "Water Gauntlet",
+      description: "Teams swim, dive, and climb through a water-based obstacle course."
+    },
+    {
+      name: "Puzzle Relay",
+      description: "Teams complete a series of mini-puzzles, tagging in new members each round."
+    },
+    {
+      name: "Sling Shot Siege",
+      description: "Teams use giant slingshots to knock down a wall of targets."
+    },
+    {
+      name: "Boulder Dash",
+      description: "Teams roll a massive boulder through checkpoints before solving a final puzzle."
     }
-  ],
   ]
 };
