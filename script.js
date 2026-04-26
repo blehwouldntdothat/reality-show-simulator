@@ -539,3 +539,272 @@ function renderTrackRecordTable() {
     tr.innerHTML = `<td>${placeNum}</td><td>${p.name}</td>`;
 
     for (let e = 0; e < episodes; e++) {
+      const td = document.createElement("td");
+      const val = p.trackRecord[e];
+
+      // Grey blank after elimination
+      if (val === "OUT") {
+        const placement = season.eliminatedOrder.findIndex(x => x.id === p.id);
+        if (e > placement) {
+          td.classList.add("track-out");
+          td.textContent = "";
+        } else {
+          td.classList.add("track-out");
+          td.textContent = "OUT";
+        }
+      } else if (val === "WIN") {
+        td.classList.add("track-win");
+        td.textContent = "WIN";
+      } else if (val === "LOW") {
+        td.classList.add("track-bottom");
+        td.textContent = "LOW";
+      } else if (val === "SAFE") {
+        td.classList.add("track-safe");
+        td.textContent = "SAFE";
+      } else {
+        td.classList.add("track-out");
+        td.textContent = "";
+      }
+
+      tr.appendChild(td);
+    }
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+}
+
+// ============================================================
+// CAST STATUS RENDER
+// ============================================================
+
+function renderCastStatus() {
+  const container = $("#cast-status");
+  container.innerHTML = "";
+
+  for (const p of season.players) {
+    const div = document.createElement("div");
+    div.className = "cast-pill";
+
+    if (!p.active) div.classList.add("eliminated");
+    else div.classList.add("safe");
+
+    div.textContent = p.name;
+    container.appendChild(div);
+  }
+}
+
+// ============================================================
+// EPISODE HEADER
+// ============================================================
+
+function renderEpisodeHeader() {
+  $("#episode-title").textContent = `Episode ${season.episode}`;
+}
+
+// ============================================================
+// FINALE
+// ============================================================
+
+function renderFinale() {
+  const finale = $("#finale-summary");
+  finale.innerHTML = "";
+
+  const active = season.activePlayers;
+  let winner;
+
+  if (active.length === 1) {
+    winner = active[0];
+  } else {
+    const finalists = active;
+    const jury = season.eliminatedOrder.slice(-7);
+
+    const votes = new Map();
+    finalists.forEach(f => votes.set(f.id, 0));
+
+    for (const juror of jury) {
+      const scores = finalists.map(f => ({
+        f,
+        score: parseFloat(juror.relationships[f.id]) + (Math.random() - 0.5) * 0.3
+      }));
+
+      scores.sort((a, b) => b.score - a.score);
+      const choice = scores[0].f;
+
+      votes.set(choice.id, votes.get(choice.id) + 1);
+    }
+
+    const entries = [...votes.entries()].sort((a, b) => b[1] - a[1]);
+    winner = finalists.find(f => f.id === entries[0][0]);
+  }
+
+  const h = document.createElement("h3");
+  h.textContent = `Winner: ${winner.name}`;
+  finale.appendChild(h);
+
+  const p = document.createElement("p");
+  p.textContent = season.players
+    .slice()
+    .sort((a, b) => {
+      const aOut = season.eliminatedOrder.findIndex(p => p.id === a.id);
+      const bOut = season.eliminatedOrder.findIndex(p => p.id === b.id);
+      if (aOut === -1 && bOut === -1) return 0;
+      if (aOut === -1) return -1;
+      if (bOut === -1) return 1;
+      return aOut - bOut;
+    })
+    .map((p, idx) => `${idx + 1}. ${p.name}`)
+    .join(" | ");
+
+  finale.appendChild(p);
+}
+
+// ============================================================
+// EPISODE LOOP
+// ============================================================
+
+function playEpisode() {
+  $("#episode-log").innerHTML = "";
+  renderEpisodeHeader();
+
+  const group = chooseGroupForEpisode();
+  logEpisode(`Players participating this episode: ${group.map(p => p.name).join(", ")}`, "header");
+
+  const endedByTwist = applyTwistsPreEpisode(group);
+  if (endedByTwist) {
+    renderCastStatus();
+    renderTrackRecordTable();
+    season.episode++;
+    checkSeasonEnd();
+    return;
+  }
+
+  if (Math.random() < 0.6) simulateRewardChallenge(group);
+  else logEpisode("No reward challenge this episode.");
+
+  const immune = simulateImmunityChallenge(group);
+
+  simulatePostChallengeEvents(group);
+  assignAdvantages(group);
+
+  const eliminated = simulateElimination(group, immune);
+  if (eliminated) eliminatePlayer(eliminated);
+
+  updateTrackRecordForEpisode(immune, eliminated);
+  renderCastStatus();
+  renderTrackRecordTable();
+
+  season.episode++;
+  checkSeasonEnd();
+}
+
+function checkSeasonEnd() {
+  if (season.activePlayers.length <= 2) {
+    $("#next-episode").textContent = "Run Finale";
+  }
+  if (season.activePlayers.length === 1) {
+    showFinale();
+  }
+}
+
+function showFinale() {
+  $("#episode-section").classList.add("hidden");
+  $("#finale-section").classList.remove("hidden");
+  renderFinale();
+}
+
+// ============================================================
+// PNG EXPORT
+// ============================================================
+
+async function downloadTrackRecordPNG() {
+  if (typeof html2canvas === "undefined") {
+    alert("Include html2canvas to enable PNG export.");
+    return;
+  }
+
+  const node = document.getElementById("track-record-container");
+  const canvas = await html2canvas(node);
+
+  const link = document.createElement("a");
+  link.download = "track-record.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+// ============================================================
+// START + RESTART
+// ============================================================
+
+function startSeason() {
+  const names = getCastFromInputs();
+  if (names.length < 8) {
+    alert("Please enter at least 8 player names.");
+    return;
+  }
+
+  const players = names.map((name, idx) => new Player(name, idx + 1));
+
+  const options = {
+    idols: $("#toggle-idols").checked,
+    voteSteal: $("#toggle-vote-steal").checked,
+    tiebreakerMode: document.querySelector('input[name="tiebreaker"]:checked').value,
+    suddenDeath: $("#toggle-sudden-death").checked,
+    splitTribe: $("#toggle-split-tribe").checked,
+    rejoin: $("#toggle-rejoin").checked
+  };
+
+  season = new SeasonState(players, options);
+
+  $("#setup-section").classList.add("hidden");
+  $("#episode-section").classList.remove("hidden");
+  $("#finale-section").classList.add("hidden");
+
+  $("#next-episode").textContent = "Next Episode";
+
+  renderCastStatus();
+  renderTrackRecordTable();
+  playEpisode();
+}
+
+function restart() {
+  season = null;
+  $("#setup-section").classList.remove("hidden");
+  $("#episode-section").classList.add("hidden");
+  $("#finale-section").classList.add("hidden");
+  $("#episode-log").innerHTML = "";
+}
+
+// ============================================================
+// DOM READY
+// ============================================================
+
+window.addEventListener("DOMContentLoaded", () => {
+  setTheme($("#theme-select").value);
+  buildCastInputs(parseInt($("#cast-size").value, 10));
+
+  $("#cast-size").addEventListener("change", e => {
+    const size = Math.max(8, Math.min(24, parseInt(e.target.value, 10) || 16));
+    e.target.value = size;
+    buildCastInputs(size);
+  });
+
+  $("#load-custom-cast").addEventListener("click", loadCustomCast);
+  $("#start-season").addEventListener("click", startSeason);
+  $("#next-episode").addEventListener("click", () => {
+    if (!season) return;
+    if (season.activePlayers.length <= 1) showFinale();
+    else if (season.activePlayers.length <= 2 && $("#next-episode").textContent === "Run Finale") showFinale();
+    else playEpisode();
+  });
+
+  $("#restart").addEventListener("click", restart);
+  $("#download-track-record").addEventListener("click", downloadTrackRecordPNG);
+
+  $("#theme-select").addEventListener("change", e => setTheme(e.target.value));
+
+  // Default player search
+  $("#default-search").addEventListener("input", renderDefaultSearch);
+  renderDefaultSearch();
+});
