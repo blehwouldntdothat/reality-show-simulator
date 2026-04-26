@@ -82,3 +82,5 @@ window.CHALLENGES = {
       description: "Teams transport a flame through obstacles without letting it go out."
     }
   ],
+  ]
+};
