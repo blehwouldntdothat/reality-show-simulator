@@ -19,10 +19,11 @@ class Player {
     this.hasIdol = false;
     this.hasVoteSteal = false;
 
-    this.relationships = {}; 
+    this.relationships = {};
     this.allianceIds = new Set();
 
-    this.trackRecord = []; 
+    this.trackRecord = [];
+    this.rejoinedAt = null; // NEW
   }
 }
 
@@ -460,7 +461,7 @@ function applyTwistsPreEpisode(group) {
     if (pool.length > 0) {
       const rejoiner = pool[Math.floor(Math.random() * pool.length)];
       rejoiner.active = true;
-
+      rejoiner.rejoinedAt = season.episode; // NEW
       season.eliminatedOrder = season.eliminatedOrder.filter(p => p.id !== rejoiner.id);
       season.rejoinUsed = true;
 
@@ -536,7 +537,14 @@ function renderTrackRecordTable() {
       const td = document.createElement("td");
       const val = p.trackRecord[e];
 
-      if (val === "OUT") {
+      // Rejoin marker
+      if (p.rejoinedAt === e + 1) {
+        td.classList.add("track-return");
+        td.textContent = "RTRN";
+      }
+
+      // OUT logic
+      else if (val === "OUT") {
         if (firstOutIndex !== -1 && e > firstOutIndex) {
           td.classList.add("track-out");
           td.textContent = "";
@@ -544,13 +552,22 @@ function renderTrackRecordTable() {
           td.classList.add("track-out");
           td.textContent = "OUT";
         }
-      } else if (val === "WIN") {
+      }
+
+      // WIN
+      else if (val === "WIN") {
         td.classList.add("track-win");
         td.textContent = "WIN";
-      } else if (val === "SAFE") {
+      }
+
+      // SAFE
+      else if (val === "SAFE") {
         td.classList.add("track-safe");
         td.textContent = "SAFE";
-      } else {
+      }
+
+      // Blank (no result yet)
+      else {
         td.classList.add("track-out");
         td.textContent = "";
       }
@@ -770,7 +787,6 @@ function restart() {
 // ============================================================
 
 window.addEventListener("DOMContentLoaded", () => {
-  setTheme($("#theme-select").value);
   buildCastInputs(parseInt($("#cast-size").value, 10));
 
   $("#cast-size").addEventListener("change", e => {
@@ -791,8 +807,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("#restart").addEventListener("click", restart);
   $("#download-track-record").addEventListener("click", downloadTrackRecordPNG);
 
-  $("#theme-select").addEventListener("change", e => setTheme(e.target.value));
-
   $("#default-search").addEventListener("input", renderDefaultSearch);
   renderDefaultSearch();
 });
+
