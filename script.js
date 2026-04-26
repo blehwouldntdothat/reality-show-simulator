@@ -1,5 +1,5 @@
 // ============================================================
-// Survivor Simulator — Main Script
+// Survivor Simulator — Main Script (FINAL UPDATED VERSION)
 // ============================================================
 
 // Utility selectors
@@ -19,10 +19,10 @@ class Player {
     this.hasIdol = false;
     this.hasVoteSteal = false;
 
-    this.relationships = {}; // playerId → score
+    this.relationships = {}; 
     this.allianceIds = new Set();
 
-    this.trackRecord = []; // "WIN", "SAFE", "LOW", "OUT"
+    this.trackRecord = []; 
   }
 }
 
@@ -63,7 +63,6 @@ class SeasonState {
   }
 
   initRelationshipsAndAlliances() {
-    // Relationships
     for (const p of this.players) {
       for (const q of this.players) {
         if (p.id === q.id) continue;
@@ -71,7 +70,6 @@ class SeasonState {
       }
     }
 
-    // Alliances
     const numAlliances = Math.min(3, Math.max(1, Math.floor(this.players.length / 5)));
     let allianceId = 1;
 
@@ -88,7 +86,6 @@ class SeasonState {
       }
     }
 
-    // Split twist
     if (this.options.splitTribe) {
       const shuffled = [...this.players].sort(() => Math.random() - 0.5);
       const mid = Math.ceil(shuffled.length / 2);
@@ -127,18 +124,6 @@ function buildCastInputs(size) {
     `;
     container.appendChild(div);
   }
-}
-
-function randomName() {
-  const first = ["Alex", "Jordan", "Taylor", "Morgan", "Riley", "Casey", "Jamie", "Sky", "Rowan", "Elliot", "Harper", "Quinn"];
-  const last = ["Stone", "Rivera", "Blake", "Knight", "Fox", "Brooks", "Vale", "Summers", "Reed", "Hart"];
-  return `${first[Math.floor(Math.random() * first.length)]} ${last[Math.floor(Math.random() * last.length)]}`;
-}
-
-function randomizeCastNames() {
-  $$("input[data-cast-index]").forEach(input => {
-    if (!input.value.trim()) input.value = randomName();
-  });
 }
 
 function getCastFromInputs() {
@@ -296,11 +281,13 @@ function assignAdvantages(group) {
 }
 
 // ============================================================
-// VOTING
+// VOTING (WITH FULL BALLOTS)
 // ============================================================
 
 function computeVoteWeights(group, immunePlayer) {
   const weights = new Map();
+  const ballots = [];
+
   const voters = group.filter(p => p.active && p.id !== immunePlayer.id);
   const targets = group.filter(p => p.active && p.id !== immunePlayer.id);
 
@@ -317,12 +304,13 @@ function computeVoteWeights(group, immunePlayer) {
     const choice = scores[0].target;
 
     weights.set(choice.id, (weights.get(choice.id) || 0) + 1);
+    ballots.push({ voterId: voter.id, targetId: choice.id });
   }
 
-  return weights;
+  return { weights, ballots };
 }
 
-function applyVoteSteal(group, immunePlayer, weights) {
+function applyVoteSteal(group, immunePlayer, weights, ballots) {
   const users = group.filter(p => p.active && p.hasVoteSteal && p.id !== immunePlayer.id);
   if (!users.length) return;
 
@@ -335,6 +323,8 @@ function applyVoteSteal(group, immunePlayer, weights) {
   const targetId = targets[Math.floor(Math.random() * targets.length)];
 
   weights.set(targetId, (weights.get(targetId) || 0) + 1);
+
+  ballots.push({ voterId: user.id, targetId });
 }
 
 function applyIdols(group, immunePlayer, weights) {
@@ -358,7 +348,6 @@ function applyIdols(group, immunePlayer, weights) {
 function resolveTiebreaker(tiedPlayers, group, immunePlayer) {
   const mode = season.options.tiebreakerMode;
 
-  // Revote
   logEpisode("Tie detected. Revote!");
 
   const voters = group.filter(p => p.active && !tiedPlayers.includes(p) && p.id !== immunePlayer.id);
@@ -384,7 +373,6 @@ function resolveTiebreaker(tiedPlayers, group, immunePlayer) {
 
   if (newTied.length === 1) return newTied[0];
 
-  // If still tied
   if (mode === "revote") {
     logEpisode("Still tied. Rocks decide the fate...");
 
@@ -396,7 +384,6 @@ function resolveTiebreaker(tiedPlayers, group, immunePlayer) {
     return loser;
   }
 
-  // Challenge tiebreaker
   const tb = TIEBREAKERS[Math.floor(Math.random() * TIEBREAKERS.length)];
 
   logEpisode(`Tiebreaker Challenge — ${tb.name}`, "header");
@@ -420,10 +407,19 @@ function eliminatePlayer(player) {
 function simulateElimination(group, immunePlayer) {
   logEpisode("Elimination ceremony begins...", "header");
 
-  let weights = computeVoteWeights(group, immunePlayer);
+  let { weights, ballots } = computeVoteWeights(group, immunePlayer);
 
-  if (season.options.voteSteal) applyVoteSteal(group, immunePlayer, weights);
+  if (season.options.voteSteal) applyVoteSteal(group, immunePlayer, weights, ballots);
   if (season.options.idols) applyIdols(group, immunePlayer, weights);
+
+  logEpisode("Vote breakdown:", "header");
+  ballots.forEach(b => {
+    const voter = group.find(p => p.id === b.voterId);
+    const target = group.find(p => p.id === b.targetId);
+    if (voter && target) {
+      logEpisode(`${voter.name} votes for ${target.name}.`);
+    }
+  });
 
   const entries = Array.from(weights.entries());
   entries.sort((a, b) => b[1] - a[1]);
@@ -483,17 +479,12 @@ function updateTrackRecordForEpisode(immunePlayer, eliminatedPlayer) {
   const epIndex = season.episode - 1;
 
   for (const p of season.players) {
-    if (!p.active && p !== eliminatedPlayer && p.trackRecord.length <= epIndex) {
-      p.trackRecord[epIndex] = "OUT";
-      continue;
-    }
-
     if (p === eliminatedPlayer) {
       p.trackRecord[epIndex] = "OUT";
     } else if (p === immunePlayer) {
       p.trackRecord[epIndex] = "WIN";
     } else if (p.active) {
-      p.trackRecord[epIndex] = Math.random() < 0.25 ? "LOW" : "SAFE";
+      p.trackRecord[epIndex] = "SAFE";
     } else {
       p.trackRecord[epIndex] = "OUT";
     }
@@ -511,9 +502,10 @@ function renderTrackRecordTable() {
     const bOut = season.eliminatedOrder.findIndex(p => p.id === b.id);
 
     if (aOut === -1 && bOut === -1) return 0;
-    if (aOut === -1) return 1;
-    if (bOut === -1) return -1;
-    return aOut - bOut;
+    if (aOut === -1) return -1;
+    if (bOut === -1) return 1;
+
+    return bOut - aOut;
   });
 
   const thead = document.createElement("thead");
@@ -538,14 +530,14 @@ function renderTrackRecordTable() {
 
     tr.innerHTML = `<td>${placeNum}</td><td>${p.name}</td>`;
 
+    const firstOutIndex = p.trackRecord.findIndex(v => v === "OUT");
+
     for (let e = 0; e < episodes; e++) {
       const td = document.createElement("td");
       const val = p.trackRecord[e];
 
-      // Grey blank after elimination
       if (val === "OUT") {
-        const placement = season.eliminatedOrder.findIndex(x => x.id === p.id);
-        if (e > placement) {
+        if (firstOutIndex !== -1 && e > firstOutIndex) {
           td.classList.add("track-out");
           td.textContent = "";
         } else {
@@ -555,9 +547,6 @@ function renderTrackRecordTable() {
       } else if (val === "WIN") {
         td.classList.add("track-win");
         td.textContent = "WIN";
-      } else if (val === "LOW") {
-        td.classList.add("track-bottom");
-        td.textContent = "LOW";
       } else if (val === "SAFE") {
         td.classList.add("track-safe");
         td.textContent = "SAFE";
@@ -804,7 +793,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   $("#theme-select").addEventListener("change", e => setTheme(e.target.value));
 
-  // Default player search
   $("#default-search").addEventListener("input", renderDefaultSearch);
   renderDefaultSearch();
 });
